@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Body, Depends, Header, Security
 from fastapi.security.api_key import APIKeyHeader, APIKey
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import pandas as pd
 import joblib
@@ -7,6 +8,15 @@ import uvicorn
 import os
 
 app = FastAPI()
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Load the saved artifacts (removed success message)
 kmeans_model = joblib.load('kmeans_model.pkl')
@@ -19,8 +29,14 @@ print("Expected features:", features_order)
 # API Key security setup
 API_KEY = os.environ.get("API_KEY", "Enzktyionw6798-adwWSAoPsAA")  # Set a default key for development
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+# Set to True to disable API key validation for development/testing
+DISABLE_API_KEY_VALIDATION = True
 
 async def get_api_key(api_key: str = Security(api_key_header)):
+    if DISABLE_API_KEY_VALIDATION:
+        return "development_mode"
+        
+    print(f"Received API key: '{api_key}' (Expected: '{API_KEY}')")
     if not api_key:
         raise HTTPException(
             status_code=403, detail="API Key header is missing"
