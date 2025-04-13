@@ -6,13 +6,23 @@ import pandas as pd
 import joblib
 import uvicorn
 import os
+from dotenv import load_dotenv
+
+load_dotenv() # Load environment variables from .env file
 
 app = FastAPI()
 
 # Configure CORS
+allow_origins = [
+    os.environ.get("BACKEND_URL_DEV", "http://localhost:3000"),
+    os.environ.get("FRONTEND_URL_DEV", "http://localhost:3001"),
+    os.environ.get("FRONTEND_URL_PROD", "https://fin-crack-frontend.vercel.app"),
+    os.environ.get("BACKEND_URL_PROD", "https://your-production-backend.com"),
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -27,10 +37,11 @@ print("Artifacts loaded successfully.")
 print("Expected features:", features_order)
 
 # API Key security setup
-API_KEY = os.environ.get("API_KEY", "Enzktyionw6798-adwWSAoPsAA")  # Set a default key for development
+API_KEY = os.environ.get("API_KEY")
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 # Set to True to disable API key validation for development/testing
-DISABLE_API_KEY_VALIDATION = True
+# Read the env var as a string and convert to boolean
+DISABLE_API_KEY_VALIDATION = os.environ.get("DISABLE_API_KEY_VALIDATION", "False").lower() == "true"
 
 async def get_api_key(api_key: str = Security(api_key_header)):
     if DISABLE_API_KEY_VALIDATION:
